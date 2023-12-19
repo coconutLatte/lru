@@ -1,6 +1,9 @@
 package lru
 
-import "fmt"
+import (
+	"fmt"
+	"sync"
+)
 
 type Element struct {
 	Key   string
@@ -22,6 +25,7 @@ type Cache struct {
 	keys     map[string]struct{}
 	capacity int
 	size     int
+	l        *sync.Mutex
 }
 
 func NewCache(capacity int) *Cache {
@@ -29,12 +33,16 @@ func NewCache(capacity int) *Cache {
 		root:     &Node{},
 		capacity: capacity,
 		keys:     make(map[string]struct{}),
+		l:        &sync.Mutex{},
 	}
 
 	return lru
 }
 
 func (lru *Cache) Get(key string) (interface{}, bool) {
+	lru.l.Lock()
+	defer lru.l.Unlock()
+
 	root := lru.root
 	if root == nil {
 		return "", false
@@ -76,6 +84,9 @@ func (lru *Cache) Get(key string) (interface{}, bool) {
 }
 
 func (lru *Cache) Put(key string, value interface{}) {
+	lru.l.Lock()
+	defer lru.l.Unlock()
+
 	root := lru.root
 	if root == nil {
 		return
